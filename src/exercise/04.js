@@ -35,8 +35,10 @@ function Board({onClick, squares, ...props}) {
 function Game() {
   const [currentSquares, setCurrentSquares] = useLocalStorageState(
     'squares',
-    Array(9).fill(null),
+    Array(9).fill(null)
   )
+  const [history, setHistory] = useLocalStorageState('history', [Array(9).fill(null)])
+  const currentStep = calculateCurrentStep(currentSquares, history)
   const nextValue = calculateNextValue(currentSquares)
   const winner = calculateWinner(currentSquares)
   const status = calculateStatus(winner, currentSquares, nextValue)
@@ -48,21 +50,31 @@ function Game() {
     const squaresCopy = [...currentSquares]
     squaresCopy[square] = nextValue
     setCurrentSquares(squaresCopy)
+
+    if (history.length-1 === currentStep) {
+      setHistory([...history, squaresCopy])
+    } else {
+      setHistory([...history.slice(0, currentStep+1), squaresCopy])
+    }
+    
   }
 
   function restart() {
     setCurrentSquares(Array(9).fill(null))
+    setHistory([Array(9).fill(null)])
   }
 
-  function moves() {
-    return (
-      <li>
-        <button>
-          move
-        </button>
-      </li>
-    )
+  function setCurrentStep(step) {
+    setCurrentSquares(history[step])
   }
+
+  const moves = history.map((move, step) =>
+    <li key={step}>
+      <button onClick={() => setCurrentStep(step)} disabled={step === currentStep}>
+        {step === 0 ? "Go to game start" : `Go to move #${step}`} {step === currentStep ? "(current)" : ""}
+      </button>
+    </li>
+  );
   
   return (
     <div className="game">
@@ -78,6 +90,16 @@ function Game() {
       </div>
     </div>
   )
+}
+
+function calculateCurrentStep(squares, history) {
+  for (let a = 0; a < history.length; a++) {
+    if (squares.length === history[a].length && squares.every((v, i) => v === history[a][i])
+      ) {
+      return a
+    } 
+  }
+  return 0
 }
 
 // eslint-disable-next-line no-unused-vars
